@@ -104,6 +104,7 @@ set(files
   __compare/common_comparison_category.h
   __compare/compare_three_way_result.h
   __compare/ordering.h
+  __compare/synth_three_way.h
   __compare/three_way_comparable.h
   __concepts/arithmetic.h
   __concepts/assignable.h
@@ -255,7 +256,6 @@ set(files
   __support/fuchsia/xlocale.h
   __support/ibm/gettod_zos.h
   __support/ibm/limits.h
-  __support/ibm/locale_mgmt_aix.h
   __support/ibm/locale_mgmt_zos.h
   __support/ibm/nanosleep.h
   __support/ibm/support.h
