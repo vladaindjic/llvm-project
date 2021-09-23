@@ -4,9 +4,6 @@
 #include "callback.h"
 #include <omp.h>
 
-void debug_1() {}
-void debug_2() {}
-void debug_3() {}
 
 int trap_ompt_get_task_info_internal(int level) {
   int task_type;
@@ -45,7 +42,7 @@ int main()
     // region 0
     // outermost lwt
     print_task_info_at(0, 1);
-    debug_1();
+
 #pragma omp task if(0)
     {
       // task 0
@@ -54,7 +51,7 @@ int main()
       // check hierarchy now
       print_task_info_at(0, 2);
       print_task_info_at(1, 1);
-      debug_2();
+
 #pragma omp parallel if(0)
       {
         // region 1
@@ -66,7 +63,6 @@ int main()
         print_task_info_at(2, 1);
         print_task_info_at(0, 3);
 
-        debug_3();
       }
 
       print_task_info_at(0, 2);
