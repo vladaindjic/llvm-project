@@ -264,6 +264,8 @@ void __ompt_lw_taskteam_init(ompt_lw_taskteam_t *lwt, kmp_info_t *thr, int gtid,
   lwt->ompt_task_info.scheduling_parent = NULL;
   lwt->heap = 0;
   lwt->parent = 0;
+  // invalidate tasking flags
+  memset(&lwt->td_flags, 0, sizeof(kmp_tasking_flags_t));
 }
 
 void __ompt_lw_taskteam_link(ompt_lw_taskteam_t *lwt, kmp_info_t *thr,
@@ -297,6 +299,15 @@ void __ompt_lw_taskteam_link(ompt_lw_taskteam_t *lwt, kmp_info_t *thr,
     ompt_task_info_t tmp_task = lwt->ompt_task_info;
     link_lwt->ompt_task_info = *OMPT_CUR_TASK_INFO(thr);
     *OMPT_CUR_TASK_INFO(thr) = tmp_task;
+
+    // copy td_flags
+    // Note: cur_task may belong to the explicit task, so we need
+    //   to preserve the td_flags.
+    kmp_taskdata_t *cur_task = thr->th.th_current_task;
+    link_lwt->td_flags = cur_task->td_flags;
+    // invalidate td_flags (maybe to invalidate only tasktype)
+    memset(&cur_task->td_flags, 0, sizeof(kmp_tasking_flags));
+
   } else {
     // this is the first serialized team, so we just store the values in the
     // team and drop the taskteam-object
@@ -316,6 +327,10 @@ void __ompt_lw_taskteam_unlink(kmp_info_t *thr) {
     ompt_task_info_t tmp_task = lwtask->ompt_task_info;
     lwtask->ompt_task_info = *OMPT_CUR_TASK_INFO(thr);
     *OMPT_CUR_TASK_INFO(thr) = tmp_task;
+
+    // copy back the td_flags
+    thr->th.th_current_task->td_flags = lwtask->td_flags;
+
 #if OMPD_SUPPORT
     if (ompd_state & OMPD_ENABLE_BP) {
       ompd_bp_parallel_end();
@@ -367,17 +382,38 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
                        *next_lwt = LWT_FROM_TEAM(taskdata->td_team),
                        *prev_lwt = NULL;
 
+    // indication whether multiple explicit tasks are nested in
+    // the same linked serialized parallel region. They should share
+    // the same lwt->ompt_team_info.
+    bool tasks_share_lwt = false;
+
     while (ancestor_level > 0) {
       // needed for thread_num
       prev_team = team;
       prev_lwt = lwt;
-      // next lightweight team (if any)
-      if (lwt)
+      // Detect whether we need to access to the next lightweight team
+      // or to share lwt->ompt_team_info among multiple tasks.
+      if (lwt && !tasks_share_lwt) {
+        if (lwt->ompt_task_info.scheduling_parent) {
+          // lwt is created by linking an explicit task.
+          // It represents the innermost explicit task nested inside
+          // linked and serialized parallel region.
+          // By using the scheduling_parent, we access to the outer task
+          // and preserve lwt->ompt_team_info.
+          taskdata = lwt->ompt_task_info.scheduling_parent;
+          tasks_share_lwt = true;
+          ancestor_level--;
+          next_lwt = NULL;
+          continue;
+        }
+        // lwt represents the serialized parallel region, so access to the
+        // outer region information.
         lwt = lwt->parent;
+      }
 
       // next heavyweight team (if any) after
       // lightweight teams are exhausted
-      if (!lwt && taskdata) {
+      if ((!lwt || tasks_share_lwt) && taskdata) {
         // first try scheduling parent (for explicit task scheduling)
         if (taskdata->ompt_task_info.scheduling_parent) {
           taskdata = taskdata->ompt_task_info.scheduling_parent;
@@ -385,6 +421,17 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
           lwt = next_lwt;
           next_lwt = NULL;
         } else {
+          if (lwt && lwt->parent && tasks_share_lwt) {
+            // All tasks that shares the lwt->ompt_team_info are exhausted.
+            // Access to the information about the outer serialized
+            // parallel region.
+            lwt = lwt->parent;
+            tasks_share_lwt = false;
+            ancestor_level--;
+            continue;
+          }
+          // Even though tasks_share_lwt may be true, there are no more lwts.
+
           // then go for implicit tasks
           taskdata = taskdata->td_parent;
           if (team == NULL)
@@ -399,10 +446,20 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
     }
 
     if (lwt) {
-      info = &lwt->ompt_task_info;
+      // If multiple tasks are reusing the same lwt->ompt_team_info,
+      // then use the taskdata->ompt_task_info which distinguishes nested
+      // tasks inside the same linked serialized parallel region.
+      info =
+          tasks_share_lwt ? &taskdata->ompt_task_info : &lwt->ompt_task_info;
       team_info = &lwt->ompt_team_info;
       if (type) {
-        *type = ompt_task_implicit;
+        // If multiple tasks are reusing the same lwt->ompt_team_info,
+        // use taskadata->td_flags, otherwise use lwt->td_flags;
+        kmp_tasking_flags_t td_flags =
+            tasks_share_lwt ? taskdata->td_flags : lwt->td_flags;
+        // Note: If the tool needs other flags for serialized parallel
+        // region, then try to apply TASK_TYPE_DETAILS_FORMAT here.
+        *type = td_flags.tasktype ? ompt_task_explicit : ompt_task_implicit;
       }
     } else if (taskdata) {
       info = &taskdata->ompt_task_info;

@@ -13,6 +13,7 @@
 #ifndef __OMPT_INTERNAL_H__
 #define __OMPT_INTERNAL_H__
 
+#include "kmp_tasking_flags.h"
 #include "ompt-event-specific.h"
 #include "omp-tools.h"
 
@@ -109,6 +110,8 @@ typedef struct ompt_lw_taskteam_s {
   ompt_task_info_t ompt_task_info;
   int heap;
   struct ompt_lw_taskteam_s *parent;
+  // preserve td_flags of kmp_taskdata_t after linking happens
+  kmp_tasking_flags_t td_flags;
 } ompt_lw_taskteam_t;
 
 typedef struct {
