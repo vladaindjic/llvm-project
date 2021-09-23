@@ -430,7 +430,9 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
             ancestor_level--;
             continue;
           }
-          // Even though tasks_share_lwt may be true, there are no more lwts.
+
+          tasks_share_lwt = false;
+          lwt = NULL;
 
           // then go for implicit tasks
           taskdata = taskdata->td_parent;

@@ -65,6 +65,7 @@ int main()
               print_task_info_at(3, 3);
               print_task_info_at(4, 2);
               print_task_info_at(5, 1);
+              print_task_info_at(6, 0);
 
 #pragma omp parallel num_threads(1)
               {
@@ -90,6 +91,7 @@ int main()
                     print_task_info_at(6, 3);
                     print_task_info_at(7, 2);
                     print_task_info_at(8, 1);
+                    print_task_info_at(9, 0);
 
                     print_task_info_at(0, 9);
                   }
@@ -119,143 +121,152 @@ int main()
 
   }
 
+  print_task_info_at(0, 0);
+
   // Check if libomp supports the callbacks for this test.
   // CHECK-NOT: {{^}}0: Could not register callback 'ompt_callback_task_create'
   // CHECK-NOT: {{^}}0: Could not register callback 'ompt_callback_implicit_task'
 
 
   // CHECK: {{^}}0: NULL_POINTER=[[NULL:.*$]]
-  // CHECK: {{^}}[[MASTER_ID:[0-9]+]]: ompt_event_initial_task_begin: parallel_id={{[0-9]+}}, task_id={{[0-9]+}}, actual_parallelism=1, index=1, flags=1
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=0 task_type=ompt_task_initial=1
+  // CHECK: {{^}}[[MASTER_ID:[0-9]+]]: ompt_event_initial_task_begin: parallel_id=[[PARALLEL_ID_0:[0-9]+]], task_id=[[TASK_ID_0:[0-9]+]], actual_parallelism=1, index=1, flags=1
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=0 task_type=ompt_task_initial
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
 
   // region 0
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id={{[0-9]+}},
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_0:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_0]], task_id=[[TASK_ID_0:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=1 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
-
-  // region 1
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_0]],
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_1:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_1]], task_id=[[TASK_ID_1:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=2 task_type=ompt_task_implicit
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=1 task_type=ompt_task_implicit
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
 
-  // region 2
+  // region 1
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_1]],
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_2:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_2]], task_id=[[TASK_ID_2:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=3 task_type=ompt_task_implicit
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=2 task_type=ompt_task_implicit
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
 
+  // region 2
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_2]],
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_3]], task_id=[[TASK_ID_3:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=3 task_type=ompt_task_implicit
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_3]]
+
   // task 0
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_2]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_3:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_3]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_4:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=4 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_3]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_4]]
 
   // task 1
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_3]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_4:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_4]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_5:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=5 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_4]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_5]]
 
   // task 2
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_4]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_5:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_task_create: parent_task_id=[[TASK_ID_5]], parent_task_frame.exit={{0x[0-f]+}}, parent_task_frame.reenter={{0x[0-f]+}}, new_task_id=[[TASK_ID_6:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=6 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_5]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
 
   // check hierarchy
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=6 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_5]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=1 id=5 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_4]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_5]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=2 id=4 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_3]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_4]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=3 id=3 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_3]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=4 id=2 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=5 id=1 task_type=ompt_task_implicit
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=6 id=0 task_type=ompt_task_initial
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
 
   // region 3
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_5]]
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_3]], task_id=[[TASK_ID_6:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=7 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
-
-  // region 4
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_6]]
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_4:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_4]], task_id=[[TASK_ID_7:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=8 task_type=ompt_task_implicit
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=7 task_type=ompt_task_implicit
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_4]] task_id=[[TASK_ID_7]]
 
-  // region 5
+  // region 4
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_7]]
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_5:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_5]], task_id=[[TASK_ID_8:[0-9]+]]
-  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=9 task_type=ompt_task_implicit
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=8 task_type=ompt_task_implicit
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_5]] task_id=[[TASK_ID_8]]
+
+  // region 5
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_begin: parent_task_id=[[TASK_ID_8]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_6:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_6]], task_id=[[TASK_ID_9:[0-9]+]]
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=9 task_type=ompt_task_implicit
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_6]] task_id=[[TASK_ID_9]]
 
   // check hierarchy
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=9 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_5]] task_id=[[TASK_ID_8]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_6]] task_id=[[TASK_ID_9]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=1 id=8 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_4]] task_id=[[TASK_ID_7]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_5]] task_id=[[TASK_ID_8]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=2 id=7 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_4]] task_id=[[TASK_ID_7]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=3 id=6 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_5]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=4 id=5 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_4]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_5]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=5 id=4 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_3]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_4]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=6 id=3 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_3]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=7 id=2 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=8 id=1 task_type=ompt_task_implicit
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=9 id=0 task_type=ompt_task_initial
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
 
   // region 5
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=9 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_5]] task_id=[[TASK_ID_8]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_6]] task_id=[[TASK_ID_9]]
 
   // region 4
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=8 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_4]] task_id=[[TASK_ID_7]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_5]] task_id=[[TASK_ID_8]]
 
   // region 3
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=7 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_4]] task_id=[[TASK_ID_7]]
 
   // task 2
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=6 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_5]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_6]]
 
   // task 1
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=5 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_4]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_5]]
 
   // task 0
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=4 task_type=ompt_task_explicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_3]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_4]]
 
   // region 2
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=3 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_3]] task_id=[[TASK_ID_3]]
 
   // region 1
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=2 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_2]] task_id=[[TASK_ID_2]]
 
   // region 0
   // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=1 task_type=ompt_task_implicit
-  // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_1]] task_id=[[TASK_ID_1]]
 
-  // CHECK: {{^}}[[MASTER_ID]]: ompt_event_parallel_end: parallel_id=[[PARALLEL_ID_0]]
+  // initial task
+  // CHECK: {{^}}[[MASTER_ID]]: ancestor_level=0 id=0 task_type=ompt_task_initial
+  // CHECK-SAME: parallel_id=[[PARALLEL_ID_0]] task_id=[[TASK_ID_0]]
 
   return 0;
 }
