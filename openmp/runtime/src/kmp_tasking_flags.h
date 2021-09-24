@@ -1,6 +1,14 @@
+/*
+ * kmp_tasking_flags.h -- OpenMP task flags
+ */
+
+//===----------------------------------------------------------------------===//
 //
-// Created by vi3 on 7/9/21.
+// Part of the LLVM Project, under the Apache License v2.0 with LLVM Exceptions.
+// See https://llvm.org/LICENSE.txt for license information.
+// SPDX-License-Identifier: Apache-2.0 WITH LLVM-exception
 //
+//===----------------------------------------------------------------------===//
 
 #ifndef KMP_TASKING_FLAGS_H
 #define KMP_TASKING_FLAGS_H
