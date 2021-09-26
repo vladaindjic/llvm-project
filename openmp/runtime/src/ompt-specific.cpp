@@ -264,6 +264,8 @@ void __ompt_lw_taskteam_init(ompt_lw_taskteam_t *lwt, kmp_info_t *thr, int gtid,
   lwt->ompt_task_info.scheduling_parent = NULL;
   lwt->heap = 0;
   lwt->parent = 0;
+  // invalidate tasking flags
+  TASKING_FLAGS_INVALIDATE(&lwt->td_flags);
 }
 
 void __ompt_lw_taskteam_link(ompt_lw_taskteam_t *lwt, kmp_info_t *thr,
@@ -297,6 +299,23 @@ void __ompt_lw_taskteam_link(ompt_lw_taskteam_t *lwt, kmp_info_t *thr,
     ompt_task_info_t tmp_task = lwt->ompt_task_info;
     link_lwt->ompt_task_info = *OMPT_CUR_TASK_INFO(thr);
     *OMPT_CUR_TASK_INFO(thr) = tmp_task;
+
+    // copy td_flags
+    // Note: cur_task may belong to the explicit task, so we need
+    //   to preserve the td_flags->tasktype.
+    kmp_taskdata_t *cur_task = thr->th.th_current_task;
+    link_lwt->td_flags = cur_task->td_flags;
+    // linked task isn't executing at the moment
+    link_lwt->td_flags.executing = 0;
+    // invalidate all td_flags of cur_task to zero
+    TASKING_FLAGS_INVALIDATE(&cur_task->td_flags);
+    // Since cur_task now represents an implicit task of the serialized
+    // parallel region, initialize tasking flags (of cur_task) the same way
+    // it is done for implicit tasks of regular regions.
+    // Otherwise, td_flags may be inherited from previously linked
+    // explicit tasks.
+    __kmp_init_implicit_task_flags(cur_task, thr->th.th_team);
+
   } else {
     // this is the first serialized team, so we just store the values in the
     // team and drop the taskteam-object
@@ -316,6 +335,12 @@ void __ompt_lw_taskteam_unlink(kmp_info_t *thr) {
     ompt_task_info_t tmp_task = lwtask->ompt_task_info;
     lwtask->ompt_task_info = *OMPT_CUR_TASK_INFO(thr);
     *OMPT_CUR_TASK_INFO(thr) = tmp_task;
+
+    // copy back the td_flags
+    thr->th.th_current_task->td_flags = lwtask->td_flags;
+    // unlinked task is executing at the moment
+    thr->th.th_current_task->td_flags.executing = 1;
+
 #if OMPD_SUPPORT
     if (ompd_state & OMPD_ENABLE_BP) {
       ompd_bp_parallel_end();
@@ -338,6 +363,10 @@ void __ompt_lw_taskteam_unlink(kmp_info_t *thr) {
 //----------------------------------------------------------
 // task support
 //----------------------------------------------------------
+
+#define OMPT_GET_TASK_FLAGS(task) \
+  (task->td_flags.tasktype ? ompt_task_explicit : ompt_task_implicit) | \
+  TASK_TYPE_DETAILS_FORMAT(task);
 
 int __ompt_get_task_info_internal(int ancestor_level, int *type,
                                   ompt_data_t **task_data,
@@ -402,16 +431,15 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
       info = &lwt->ompt_task_info;
       team_info = &lwt->ompt_team_info;
       if (type) {
-        *type = ompt_task_implicit;
+        // lwt may be created from an explicit task, so find proper flags
+        *type = OMPT_GET_TASK_FLAGS(lwt);
       }
     } else if (taskdata) {
       info = &taskdata->ompt_task_info;
       team_info = &team->t.ompt_team_info;
       if (type) {
         if (taskdata->td_parent) {
-          *type = (taskdata->td_flags.tasktype ? ompt_task_explicit
-                                               : ompt_task_implicit) |
-                  TASK_TYPE_DETAILS_FORMAT(taskdata);
+          *type = OMPT_GET_TASK_FLAGS(taskdata);
         } else {
           *type = ompt_task_initial;
         }
