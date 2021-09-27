@@ -418,20 +418,20 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
       prev_lwt = lwt;
 
       if (lwt) {
-        // At the time lwt is created, the active task was an explicit task.
+        kmp_taskdata_t *scheduling_parent =
+            lwt->ompt_task_info.scheduling_parent;
+        // At the time lwt was created, the active task was an explicit task.
         // Thus, lwt->ompt_task_info represents the information about that
         // task. It is possible that the explicit task is nested inside the
         // hierarchy of explicit tasks on top of which is the implicit task
-        // of the enclosing parallel region. The inner loop iterates over
+        // of the enclosing parallel region R. The inner loop iterates over
         // this hierarchy by using the scheduling_parent pointer until either
         // reaching the requested ancestor_level or encountering the implicit
-        // task of the mentioned region. Since this implicit task doesn't have
-        // the scheduling_parent, search continues from the innermost tasks
-        // that encloses the mentioned serialized region.
+        // task of the enclosing parallel region R. Since this implicit task
+        // doesn't have the scheduling_parent, search continues from the
+        // innermost tasks that encloses the region R.
         // Note that the lwt->ompt_team_info is going to be shared by all tasks
         // nested in the the same serialized parallel region.
-        kmp_taskdata_t *scheduling_parent =
-            lwt->ompt_task_info.scheduling_parent;
         while (scheduling_parent && ancestor_level > 0) {
           // access to the parent task
           taskdata = scheduling_parent;
@@ -447,11 +447,13 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
           tasks_share_lwt = true;
           break;
         }
-      }
 
-      // next lightweight team (if any)
-      if (lwt)
+        // Since the previous loop eventually exhausted all nested tasks that
+        // belongs to the same serialized parallel region R, try to access the
+        // lwt that corresponds to the serialized region that encloses the
+        // region R, if any.
         lwt = lwt->parent;
+      }
 
       // next heavyweight team (if any) after
       // lightweight teams are exhausted
