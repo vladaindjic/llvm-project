@@ -15,7 +15,7 @@
 
 // Set all tasking flags to zero, under assumption
 // that kmp_tasking_flags struct is exactly 32 bits long.
-#define TASKING_FLAGS_INVALIDATE(td_flags_ptr) \
+#define TASKING_FLAGS_CLEAR(td_flags_ptr) \
   *((uint32_t *) td_flags_ptr) = 0;
 
 // In order to avoid circular reference, declare the following data structure
