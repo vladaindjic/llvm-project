@@ -420,7 +420,8 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
       if (lwt) {
         kmp_taskdata_t *scheduling_parent =
             lwt->ompt_task_info.scheduling_parent;
-        // At the time lwt was created, the active task was an explicit task.
+        // If the scheduling_parent != NULL, when the lwt was created,
+        // the active task was an explicit task.
         // Thus, lwt->ompt_task_info represents the information about that
         // task. It is possible that the explicit task is nested inside the
         // hierarchy of explicit tasks on top of which is the implicit task
@@ -429,7 +430,7 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
         // reaching the requested ancestor_level or encountering the implicit
         // task of the enclosing parallel region R. Since this implicit task
         // doesn't have the scheduling_parent, search continues from the
-        // innermost tasks that encloses the region R.
+        // innermost task that encloses the region R.
         // Note that the lwt->ompt_team_info is going to be shared by all tasks
         // nested in the the same serialized parallel region.
         while (scheduling_parent && ancestor_level > 0) {
@@ -448,10 +449,9 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
           break;
         }
 
-        // Since the previous loop eventually exhausted all nested tasks that
-        // belongs to the same serialized parallel region R, try to access the
-        // lwt that corresponds to the serialized region that encloses the
-        // region R, if any.
+        // Since the previous loop exhausted all nested tasks that belong to
+        // a serialized parallel region R, advance lwt to the serialized
+        // region that encloses R, if any.
         lwt = lwt->parent;
       }
 
