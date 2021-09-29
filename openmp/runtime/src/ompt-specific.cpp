@@ -364,13 +364,11 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
     if (team == NULL)
       return 0;
     ompt_lw_taskteam_t *lwt = NULL,
-                       *next_lwt = LWT_FROM_TEAM(taskdata->td_team),
-                       *prev_lwt = NULL;
+                       *next_lwt = LWT_FROM_TEAM(taskdata->td_team);
 
     while (ancestor_level > 0) {
       // needed for thread_num
       prev_team = team;
-      prev_lwt = lwt;
       // next lightweight team (if any)
       if (lwt)
         lwt = lwt->parent;
@@ -430,7 +428,7 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
     if (thread_num) {
       if (level == 0)
         *thread_num = __kmp_get_tid();
-      else if (prev_lwt)
+      else if (lwt)
         *thread_num = 0;
       else
         *thread_num = prev_team->t.t_master_tid;
