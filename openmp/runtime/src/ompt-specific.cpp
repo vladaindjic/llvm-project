@@ -392,6 +392,10 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
           team = team->t.t_parent;
           if (taskdata) {
             next_lwt = LWT_FROM_TEAM(taskdata->td_team);
+          } else {
+            // All tasks have been exhausted, so there's no task at the
+            // requested ancestor_level. Thus, stop iterating and return 0.
+            return 0;
           }
         }
       }
