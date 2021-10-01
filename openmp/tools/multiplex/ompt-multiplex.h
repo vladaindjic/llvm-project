@@ -839,11 +839,15 @@ int ompt_multiplex_own_get_task_info(int ancestor_level, int *type,
                                          task_frame, parallel_data, thread_num);
 
 #ifndef OMPT_MULTIPLEX_CUSTOM_GET_CLIENT_TASK_DATA
-  if (task_data)
+  // ret == 2 assures that the task at the ancestor_level exists and that the
+  // information about it is present.
+  if (ret == 2 && task_data)
     *task_data = ompt_multiplex_get_own_ompt_data(*task_data);
 #endif
 #ifndef OMPT_MULTIPLEX_CUSTOM_GET_CLIENT_PARALLEL_DATA
-  if (parallel_data)
+  // ret == 2 assures that the task at the ancestor_level exists and that the
+  // information about it is present.
+  if (ret == 2 && parallel_data)
     *parallel_data = ompt_multiplex_get_own_ompt_data(*parallel_data);
 #endif
   return ret;
@@ -857,14 +861,18 @@ int ompt_multiplex_client_get_task_info(int ancestor_level, int *type,
   int ret = ompt_multiplex_get_task_info(ancestor_level, type, task_data,
                                          task_frame, parallel_data, thread_num);
 
-  if (task_data)
+  // ret == 2 assures that the task at the ancestor_level exists and that the
+  // information about it is present.
+  if (ret == 2 && task_data)
 #ifndef OMPT_MULTIPLEX_CUSTOM_GET_CLIENT_TASK_DATA
     *task_data = ompt_multiplex_get_client_ompt_data(*task_data);
 #else
     *task_data = OMPT_MULTIPLEX_CUSTOM_GET_CLIENT_TASK_DATA(*task_data);
 #endif
 
-  if (parallel_data)
+  // ret == 2 assures that the task at the ancestor_level exists and that the
+  // information about it is present.
+  if (ret == 2 && parallel_data)
 #ifndef OMPT_MULTIPLEX_CUSTOM_GET_CLIENT_PARALLEL_DATA
     *parallel_data = ompt_multiplex_get_client_ompt_data(*parallel_data);
 #else
