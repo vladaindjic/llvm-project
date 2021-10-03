@@ -28,6 +28,7 @@ int main(int argc, char **argv) {
   // Set thread count; causes the initialization of the OMPT code
   omp_set_num_threads(NUMTHREADS);
 
+#if 0
   // test lock callbacks
   lockcbtest();
   (*delay_ptr)(10);
@@ -35,11 +36,13 @@ int main(int argc, char **argv) {
   // test reduction
   reductiontest();
   (*delay_ptr)(10);
+#endif
 
   // Test frames for multiple loops in a single parallel region
   testparallel();
   (*delay_ptr)(10);
 
+#if 0
   // Test frames for independent parallel for loops with static scheduling
   testparallelfor();
   (*delay_ptr)(10);
@@ -58,6 +61,8 @@ int main(int argc, char **argv) {
 #ifndef NO_NONEST
   testtriple_nonest();
   (*delay_ptr)(10);
+#endif
+
 #endif
 
   // Check for failures
@@ -86,6 +91,8 @@ void testparallel() {
 #pragma omp parallel private(i)
   {
     (*validate_ptr)("parallel start");
+
+#if 0
 #pragma omp master
     ts_write("\n                  starting for\n\n");
 #pragma omp for
@@ -117,6 +124,8 @@ void testparallel() {
       (*validate_ptr)("for schedule(guided)");
 #pragma omp master
     (*delay_ptr)(10);
+
+#endif
 
     (*validate_ptr)("parallel end");
   }

@@ -249,7 +249,9 @@ void ompt_implicit_task(ompt_scope_endpoint_t endpoint,
         (endpoint == ompt_scope_begin ? "[begin] " : "[end] "));
 
   if (endpoint == ompt_scope_begin) {
-    (*validate_ptr)("implicit task begin");
+    // TODO VI3: assert that exit and enter frames are null while
+    //   the ancestor enter is not NULL
+    // (*validate_ptr)("implicit task begin");
     in_implicit_task = 1;
   } else if (endpoint == ompt_scope_end) {
     // (*validate_ptr)("implicit task end"); // can't validate
@@ -788,7 +790,7 @@ void ck_ra(const char *type, int ckra, const void *ra, int param, char *desc) {
 //	    check that its exit_frame pointer is non-NULL, and flag is non-zero
 //	    check that its enter_frame pointer is NULL, and flag is zero
 // 	ask for the caller's ancestors' frame
-//	    check that its exit_frame pointer is non-NULL, and flag is non-zero
+//	    check that its enter_frame pointer is non-NULL, and flag is non-zero
 // 	delay a varying amount, depending on thread number to desynchonize the
 // threads
 // ------------------------------------------------------------------------
