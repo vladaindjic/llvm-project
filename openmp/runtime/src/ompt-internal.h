@@ -20,9 +20,12 @@
 
 #define _OMP_EXTERN extern "C"
 
-#define OMPT_INVOKER(x)                                                        \
-  ((x == fork_context_gnu) ? ompt_parallel_invoker_program                     \
-                           : ompt_parallel_invoker_runtime)
+// Invoker is equal to ompt_parallel_invoker_program only if the clang
+// generated the code for serialized parallel region whose omp parallel
+// directive contains if(0) clause. For all other cases, the implicit tasks
+// of the corresponding regions are invoked by the runtime, so use below
+// ompt_parallel_invoker_runtime flag.
+#define OMPT_INVOKER(x) ompt_parallel_invoker_runtime
 
 #define ompt_callback(e) e##_callback
 
