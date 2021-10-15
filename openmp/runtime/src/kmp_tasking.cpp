@@ -1121,6 +1121,21 @@ void __kmp_init_implicit_task(ident_t *loc_ref, kmp_info_t *this_thr,
     task->td_taskgroup = NULL; // An implicit task does not have taskgroup
     task->td_dephash = NULL;
     __kmp_push_current_task_to_thread(this_thr, team, tid);
+#if OMPT_SUPPORT
+    if (tid == 0) {
+      // Initial master thread executes this function before the tool has been
+      // initialized, so the ompt_enabled.enabled == false, which means that
+      // the corresponding initial task won't be properly initialized by the
+      // function __ompt_task_init.
+      // It should be harmless to call this function here, even if the tool
+      // won't get initialized afterwards.
+      // Another option is to do the initialization during the execution of
+      // ompt_post_init function. In that case, __ompt_task_init must be
+      // exported to be used inside the kmp_runtime.cpp, which means that the
+      // function stops being inlined.
+      __ompt_task_init(task, tid);
+    }
+#endif
   } else {
     KMP_DEBUG_ASSERT(task->td_incomplete_child_tasks == 0);
     KMP_DEBUG_ASSERT(task->td_allocated_child_tasks == 0);

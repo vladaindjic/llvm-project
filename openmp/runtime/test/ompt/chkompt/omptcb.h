@@ -1202,9 +1202,7 @@ void validate_task_frame_hierarchy(const char *type, char call_site) {
       }
       // check enter_frame_flags
       if (task_frame->enter_frame_flags != RUNTIME_FRAME_FLAGS) {
-        // TODO VI3-VI3: Fix this inside __kmp_init_implicit task
-        //   to initialized flags properly for the initial task.
-        //assert(0);
+        assert(0);
       }
       // All tasks have been exhausted, so stop iterating.
       break;
