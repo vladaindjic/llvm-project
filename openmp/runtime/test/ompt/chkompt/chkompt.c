@@ -156,10 +156,9 @@ testparallelfor() {
 
   testguided();
   (*delay_ptr)(10);
-#if 0
+
   testsections();
   (*delay_ptr)(10);
-#endif
 }
 
 // ------------------------------------------------------------------------
@@ -199,21 +198,21 @@ void testsections() {
     {
 #pragma omp section
       {
-        (*validate_ptr)("omp section 1");
+        (*vi3_validate_ptr)("omp section 1", APP);
 #ifdef  RUN_SKEW
         (*skew_delay_ptr)(1);
 #endif
       }
 #pragma omp section
       {
-        (*validate_ptr)("omp section 2");
+        (*vi3_validate_ptr)("omp section 2", APP);
 #ifdef  RUN_SKEW
         (*skew_delay_ptr)(2);
 #endif
       }
 #pragma omp section
       {
-        (*validate_ptr)("omp section 3");
+        (*vi3_validate_ptr)("omp section 3", APP);
 #ifdef  RUN_SKEW
         (*skew_delay_ptr)(3);
 #endif
