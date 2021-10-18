@@ -38,6 +38,8 @@ int main()
 
 #pragma omp parallel num_threads(2)
   {
+    // sync threads before checking the output
+#pragma omp barrier
     // region 0
     if (omp_get_thread_num() == 1) {
       // executed by worker thread only
