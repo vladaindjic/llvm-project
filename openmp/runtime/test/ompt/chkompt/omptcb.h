@@ -1131,6 +1131,7 @@ void validate_task_frame_hierarchy(const char *type, char call_site) {
   ompt_data_t *task_data;
   ompt_data_t *parallel_data;
   char buf[256];
+  char child_task_explicit = 0;
 
   for (ancestor_level = 0;; ancestor_level++) {
     ret = ompt_get_task_info_fn(ancestor_level, &task_type, &task_data,
@@ -1207,6 +1208,22 @@ void validate_task_frame_hierarchy(const char *type, char call_site) {
       // All tasks have been exhausted, so stop iterating.
       break;
     } else {
+      if (child_task_explicit) {
+        // If child task is an explicit task, check whether the current task is
+        // the enclosing implicit task.
+        if (task_type & ompt_task_implicit) {
+          child_task_explicit = 0;
+          // Both exit and enter frames might be NULL.
+          // If so, then the child task is an explicit task been executed
+          // while thread is waiting at the final implicit barrier.
+          // Continue to the task that encloses current implicit task.
+          if (task_frame->exit_frame.ptr == NULL
+              && task_frame->enter_frame.ptr == NULL) {
+            continue;
+          }
+        }
+      }
+
       // both enter and exit task frame should be set
       // corresponding flags should be set too
 
@@ -1235,8 +1252,8 @@ void validate_task_frame_hierarchy(const char *type, char call_site) {
       }
     }
 
-
     child_task_frame = task_frame;
+    child_task_explicit = task_type & ompt_task_explicit;
   }
 
 }

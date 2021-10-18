@@ -47,8 +47,6 @@ int main(int argc, char **argv) {
   testparallelfor();
   (*delay_ptr)(10);
 
-#if 0
-
   // test parallel sections
   testparallelsections();
   (*delay_ptr)(10);
@@ -57,6 +55,9 @@ int main(int argc, char **argv) {
   testtasks();
   (*delay_ptr)(10);
 
+  // TODO VI3-VI3: testnestedtasks
+
+#if 0
   // test triply nested loops
   testtriple_nest();
   (*delay_ptr)(10);
@@ -227,11 +228,11 @@ void testparallelsections() {
 #pragma omp parallel sections num_threads(NUMTHREADS)
   {
 #pragma omp section
-    (*validate_ptr)("omp parallel section 1");
+    (*vi3_validate_ptr)("omp parallel section 1", APP);
 #pragma omp section
-    (*validate_ptr)("omp parallel section 2");
+    (*vi3_validate_ptr)("omp parallel section 2", APP);
 #pragma omp section
-    (*validate_ptr)("omp parallel section 3");
+    (*vi3_validate_ptr)("omp parallel section 3", APP);
   }
 }
 
@@ -242,23 +243,23 @@ void testtasks() {
 #pragma omp single
     {
 #pragma omp task
-      (*validate_ptr)("omp task 1");
+      (*vi3_validate_ptr)("omp task 1", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 2");
+      (*vi3_validate_ptr)("omp task 2", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 3");
+      (*vi3_validate_ptr)("omp task 3", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 4");
+      (*vi3_validate_ptr)("omp task 4", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 5");
+      (*vi3_validate_ptr)("omp task 5", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 6");
+      (*vi3_validate_ptr)("omp task 6", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 7");
+      (*vi3_validate_ptr)("omp task 7", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 8");
+      (*vi3_validate_ptr)("omp task 8", APP);
 #pragma omp task
-      (*validate_ptr)("omp task 9");
+      (*vi3_validate_ptr)("omp task 9", APP);
     }
   }
 }
