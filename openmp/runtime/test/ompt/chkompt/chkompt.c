@@ -57,15 +57,13 @@ int main(int argc, char **argv) {
 
   // TODO VI3-VI3: testnestedtasks
 
-#if 0
   // test triply nested loops
   testtriple_nest();
   (*delay_ptr)(10);
+
 #ifndef NO_NONEST
   testtriple_nonest();
   (*delay_ptr)(10);
-#endif
-
 #endif
 
   // Check for failures
@@ -337,11 +335,11 @@ loop0() {
   char buf[100];
   form_label(buf, "loop0");
 
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
   for (j = 0; j < ITERATIONS; j += 2) j--;
 
   strncpy(buf, "End   ", 6);
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
 }
 
 void
@@ -350,11 +348,11 @@ loop1() {
   char buf[100];
   form_label(buf, "loop1");
 
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
   for (j = 0; j < ITERATIONS; j += 2) j--;
 
   strncpy(buf, "End   ", 6);
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
 }
 
 void
@@ -363,11 +361,11 @@ loop2() {
   char buf[100];
   form_label(buf, "loop2");
 
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
   for (j = 0; j < ITERATIONS; j += 2) j--;
 
   strncpy(buf, "End   ", 6);
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
 }
 
 void
@@ -376,11 +374,11 @@ loop3() {
   char buf[100];
   form_label(buf, "loop3");
 
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
   for (j = 0; j < ITERATIONS; j += 2) j--;
 
   strncpy(buf, "End   ", 6);
-  (*validate_ptr)(buf);
+  (*vi3_validate_ptr)(buf, APP);
 }
 
 // reductiontest -- check for appropriate callbacks
