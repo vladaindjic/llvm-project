@@ -364,9 +364,9 @@ void __ompt_lw_taskteam_unlink(kmp_info_t *thr) {
 // task support
 //----------------------------------------------------------
 
-#define OMPT_GET_TASK_FLAGS(task) \
-  (task->td_flags.tasktype ? ompt_task_explicit : ompt_task_implicit) | \
-  TASK_TYPE_DETAILS_FORMAT(task)
+#define OMPT_GET_TASK_FLAGS(task)                                              \
+  (task->td_flags.tasktype ? ompt_task_explicit : ompt_task_implicit) |        \
+      TASK_TYPE_DETAILS_FORMAT(task)
 
 int __ompt_get_task_info_internal(int ancestor_level, int *type,
                                   ompt_data_t **task_data,
@@ -480,7 +480,7 @@ int __ompt_get_task_info_internal(int ancestor_level, int *type,
 
     if (lwt) {
       // Decide whether to read task information from taskdata or lwt.
-      info = tasks_share_lwt ? &taskdata->ompt_task_info: &lwt->ompt_task_info;
+      info = tasks_share_lwt ? &taskdata->ompt_task_info : &lwt->ompt_task_info;
       team_info = &lwt->ompt_team_info;
       if (type) {
         // decide whether to read td_flags from taskdata or lwt

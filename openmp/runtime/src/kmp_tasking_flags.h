@@ -15,8 +15,7 @@
 
 // Set all tasking flags to zero, under assumption
 // that kmp_tasking_flags struct is exactly 32 bits long.
-#define TASKING_FLAGS_CLEAR(td_flags_ptr) \
-  *((uint32_t *) td_flags_ptr) = 0;
+#define TASKING_FLAGS_CLEAR(td_flags_ptr) *((uint32_t *)td_flags_ptr) = 0;
 
 // In order to avoid circular reference, declare the following data structure
 // here in order to be safely included by both ompt-internal.h and kmp.h files.
@@ -57,4 +56,4 @@ typedef struct kmp_tasking_flags { /* Total struct must be exactly 32 bits */
 
 } kmp_tasking_flags_t;
 
-#endif //KMP_TASKING_FLAGS_H
+#endif // KMP_TASKING_FLAGS_H
