@@ -264,7 +264,7 @@ void __ompt_lw_taskteam_init(ompt_lw_taskteam_t *lwt, kmp_info_t *thr, int gtid,
   lwt->ompt_task_info.scheduling_parent = NULL;
   lwt->heap = 0;
   lwt->parent = 0;
-  // invalidate tasking flags
+  // clear tasking flags
   TASKING_FLAGS_CLEAR(&lwt->td_flags);
 }
 
@@ -307,7 +307,7 @@ void __ompt_lw_taskteam_link(ompt_lw_taskteam_t *lwt, kmp_info_t *thr,
     link_lwt->td_flags = cur_task->td_flags;
     // linked task isn't executing at the moment
     link_lwt->td_flags.executing = 0;
-    // invalidate all td_flags of cur_task to zero
+    // clear td_flags of cur_task
     TASKING_FLAGS_CLEAR(&cur_task->td_flags);
     // Since cur_task now represents an implicit task of the serialized
     // parallel region, initialize tasking flags (of cur_task) the same way
