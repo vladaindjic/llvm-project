@@ -1197,11 +1197,28 @@ LOOP_DOACROSS_RUNTIME_START_ULL(
     parent_frame->enter_frame = ompt_data_none;                                \
   }
 
+#define OMPT_LOOP_BEFORE_TASK()                                                \
+  ompt_frame_t *task_frame;                                                    \
+  if (ompt_enabled.enabled) {                                                  \
+    task_frame =                                                               \
+        &(__kmp_threads[gtid]->th.th_current_task->ompt_task_info.frame);      \
+    task_frame->exit_frame.ptr = OMPT_GET_FRAME_ADDRESS(0);                    \
+  }
+
+#define OMPT_LOOP_AFTER_TASK()                                                 \
+  if (ompt_enabled.enabled) {                                                  \
+    task_frame->exit_frame = ompt_data_none;                                   \
+  }
+
 #else
 
 #define OMPT_LOOP_PRE()
 
 #define OMPT_LOOP_POST()
+
+#define OMPT_LOOP_BEFORE_TASK()
+
+#define OMPT_LOOP_AFTER_TASK()
 
 #endif
 
@@ -1566,7 +1583,9 @@ void KMP_EXPAND_NAME(KMP_API_NAME_GOMP_PARALLEL_SECTIONS)(void (*task)(void *),
                         (str > 0) ? (ub - 1) : (ub + 1), str, chunk_sz,        \
                         (schedule) != kmp_sch_static);                         \
     }                                                                          \
+    OMPT_LOOP_BEFORE_TASK()                                                    \
     task(data);                                                                \
+    OMPT_LOOP_AFTER_TASK()                                                     \
     KMP_EXPAND_NAME(KMP_API_NAME_GOMP_PARALLEL_END)();                         \
     ompt_post();                                                               \
                                                                                \
