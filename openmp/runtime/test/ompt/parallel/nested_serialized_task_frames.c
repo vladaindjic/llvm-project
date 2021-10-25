@@ -53,25 +53,25 @@ int main()
   // CHECK-SAME: parallel_id=[[PARALLEL_ID_2:[0-9]+]]
   // CHECK: {{^}}[[MASTER_ID]]: ompt_event_implicit_task_begin: parallel_id=[[PARALLEL_ID_2]], task_id=[[TASK_ID_2:[0-9]+]]
 
-  // region 2' implicit task information (exit frame should be set, while enter should be NULL)
+  // region 2's implicit task information (exit frame should be set, while enter should be NULL)
   // CHECK: {{^}}[[MASTER_ID]]: task level 0: parallel_id=[[PARALLEL_ID_2]], task_id=[[TASK_ID_2]]
   // CHECK-SAME: exit_frame={{0x[0-f]+}}
   // CHECK-SAME: reenter_frame=[[NULL]]
   // CHECK-SAME: task_type=ompt_task_implicit
 
-  // region 1' implicit task information (both exit and enter frames should be set)
+  // region 1's implicit task information (both exit and enter frames should be set)
   // CHECK: {{^}}[[MASTER_ID]]: task level 1: parallel_id=[[PARALLEL_ID_1]], task_id=[[TASK_ID_1]]
   // CHECK-SAME: exit_frame=[[REGION_1_FRAME_EXIT]]
   // CHECK-SAME: reenter_frame=[[REGION_1_FRAME_ENTER]]
   // CHECK-SAME: task_type=ompt_task_implicit
 
-  // region 0' implicit task information (both exit and enter frames should be set)
+  // region 0's implicit task information (both exit and enter frames should be set)
   // CHECK: {{^}}[[MASTER_ID]]: task level 2: parallel_id=[[PARALLEL_ID_0]], task_id=[[TASK_ID_0]]
   // CHECK-SAME: exit_frame=[[REGION_0_FRAME_EXIT]]
   // CHECK-SAME: reenter_frame=[[REGION_0_FRAME_ENTER]]
   // CHECK-SAME: task_type=ompt_task_implicit
 
-  // region 0' initial task information (both exit and enter frames should be set)
+  // region 0's initial task information (both exit and enter frames should be set)
   // CHECK: {{^}}[[MASTER_ID]]: task level 3: parallel_id=[[INITIAL_PARALLEL_ID]], task_id=[[INITIAL_TASK_ID]]
   // CHECK-SAME: exit_frame=[[NULL]]
   // CHECK-SAME: reenter_frame=[[INITIAL_TASK_FRAME_ENTER]]
