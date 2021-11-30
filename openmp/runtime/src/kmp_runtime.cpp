@@ -1344,6 +1344,150 @@ void __kmp_serialized_parallel(ident_t *loc, kmp_int32 global_tid) {
 #endif
 }
 
+/* Finish a parallel region that has been serialized. */
+void __kmp_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid,
+                                   int invoker) {
+  kmp_internal_control_t *top;
+  kmp_info_t *this_thr;
+  kmp_team_t *serial_team;
+
+  KC_TRACE(10, ("__kmp_end_serialized_parallel: called by T#%d\n", global_tid));
+
+  /* skip all this code for autopar serialized loops since it results in
+     unacceptable overhead */
+  if (loc != NULL && (loc->flags & KMP_IDENT_AUTOPAR))
+    return;
+
+  // Not autopar code
+  __kmp_assert_valid_gtid(global_tid);
+  if (!TCR_4(__kmp_init_parallel))
+    __kmp_parallel_initialize();
+
+  __kmp_resume_if_soft_paused();
+
+  this_thr = __kmp_threads[global_tid];
+  serial_team = this_thr->th.th_serial_team;
+
+  kmp_task_team_t *task_team = this_thr->th.th_task_team;
+  // we need to wait for the proxy tasks before finishing the thread
+  if (task_team != NULL && task_team->tt.tt_found_proxy_tasks)
+    __kmp_task_team_wait(this_thr, serial_team USE_ITT_BUILD_ARG(NULL));
+
+  KMP_MB();
+  KMP_DEBUG_ASSERT(serial_team);
+  KMP_ASSERT(serial_team->t.t_serialized);
+  KMP_DEBUG_ASSERT(this_thr->th.th_team == serial_team);
+  KMP_DEBUG_ASSERT(serial_team != this_thr->th.th_root->r.r_root_team);
+  KMP_DEBUG_ASSERT(serial_team->t.t_threads);
+  KMP_DEBUG_ASSERT(serial_team->t.t_threads[0] == this_thr);
+
+#if OMPT_SUPPORT
+  if (ompt_enabled.enabled &&
+      this_thr->th.ompt_thread_info.state != ompt_state_overhead) {
+    OMPT_CUR_TASK_INFO(this_thr)->frame.exit_frame = ompt_data_none;
+    if (ompt_enabled.ompt_callback_implicit_task) {
+      ompt_callbacks.ompt_callback(ompt_callback_implicit_task)(
+          ompt_scope_end, NULL, OMPT_CUR_TASK_DATA(this_thr), 1,
+          OMPT_CUR_TASK_INFO(this_thr)->thread_num, ompt_task_implicit);
+    }
+
+    // reset clear the task id only after unlinking the task
+    ompt_data_t *parent_task_data;
+    __ompt_get_task_info_internal(1, NULL, &parent_task_data, NULL, NULL, NULL);
+
+    if (ompt_enabled.ompt_callback_parallel_end) {
+      ompt_callbacks.ompt_callback(ompt_callback_parallel_end)(
+          &(serial_team->t.ompt_team_info.parallel_data), parent_task_data,
+          invoker | ompt_parallel_team, OMPT_LOAD_RETURN_ADDRESS(global_tid));
+    }
+    __ompt_lw_taskteam_unlink(this_thr);
+    this_thr->th.ompt_thread_info.state = ompt_state_overhead;
+  }
+#endif
+
+  /* If necessary, pop the internal control stack values and replace the team
+   * values */
+  top = serial_team->t.t_control_stack_top;
+  if (top && top->serial_nesting_level == serial_team->t.t_serialized) {
+    copy_icvs(&serial_team->t.t_threads[0]->th.th_current_task->td_icvs, top);
+    serial_team->t.t_control_stack_top = top->next;
+    __kmp_free(top);
+  }
+
+  /* pop dispatch buffers stack */
+  KMP_DEBUG_ASSERT(serial_team->t.t_dispatch->th_disp_buffer);
+  {
+    dispatch_private_info_t *disp_buffer =
+        serial_team->t.t_dispatch->th_disp_buffer;
+    serial_team->t.t_dispatch->th_disp_buffer =
+        serial_team->t.t_dispatch->th_disp_buffer->next;
+    __kmp_free(disp_buffer);
+  }
+  this_thr->th.th_def_allocator = serial_team->t.t_def_allocator; // restore
+
+  --serial_team->t.t_serialized;
+  if (serial_team->t.t_serialized == 0) {
+
+    /* return to the parallel section */
+
+#if KMP_ARCH_X86 || KMP_ARCH_X86_64
+    if (__kmp_inherit_fp_control && serial_team->t.t_fp_control_saved) {
+      __kmp_clear_x87_fpu_status_word();
+      __kmp_load_x87_fpu_control_word(&serial_team->t.t_x87_fpu_control_word);
+      __kmp_load_mxcsr(&serial_team->t.t_mxcsr);
+    }
+#endif /* KMP_ARCH_X86 || KMP_ARCH_X86_64 */
+
+    __kmp_pop_current_task_from_thread(this_thr);
+#if OMPD_SUPPORT
+    if (ompd_state & OMPD_ENABLE_BP)
+      ompd_bp_parallel_end();
+#endif
+
+    this_thr->th.th_team = serial_team->t.t_parent;
+    this_thr->th.th_info.ds.ds_tid = serial_team->t.t_master_tid;
+
+    /* restore values cached in the thread */
+    this_thr->th.th_team_nproc = serial_team->t.t_parent->t.t_nproc; /*  JPH */
+    this_thr->th.th_team_master =
+        serial_team->t.t_parent->t.t_threads[0]; /* JPH */
+    this_thr->th.th_team_serialized = this_thr->th.th_team->t.t_serialized;
+
+    /* TODO the below shouldn't need to be adjusted for serialized teams */
+    this_thr->th.th_dispatch =
+        &this_thr->th.th_team->t.t_dispatch[serial_team->t.t_master_tid];
+
+    KMP_ASSERT(this_thr->th.th_current_task->td_flags.executing == 0);
+    this_thr->th.th_current_task->td_flags.executing = 1;
+
+    if (__kmp_tasking_mode != tskm_immediate_exec) {
+      // Copy the task team from the new child / old parent team to the thread.
+      this_thr->th.th_task_team =
+          this_thr->th.th_team->t.t_task_team[this_thr->th.th_task_state];
+      KA_TRACE(20,
+               ("__kmp_end_serialized_parallel: T#%d restoring task_team %p / "
+                "team %p\n",
+                global_tid, this_thr->th.th_task_team, this_thr->th.th_team));
+    }
+  } else {
+    if (__kmp_tasking_mode != tskm_immediate_exec) {
+      KA_TRACE(20, ("__kmp_end_serialized_parallel: T#%d decreasing nesting "
+                    "depth of serial team %p to %d\n",
+                    global_tid, serial_team, serial_team->t.t_serialized));
+    }
+  }
+
+  serial_team->t.t_level--;
+  if (__kmp_env_consistency_check)
+    __kmp_pop_parallel(global_tid, NULL);
+#if OMPT_SUPPORT
+  if (ompt_enabled.enabled)
+    this_thr->th.ompt_thread_info.state =
+        ((this_thr->th.th_team_serialized) ? ompt_state_work_serial
+                                           : ompt_state_work_parallel);
+#endif
+}
+
 /* most of the work for a fork */
 /* return true if we really went parallel, false if serialized */
 int __kmp_fork_call(ident_t *loc, int gtid,
@@ -2303,7 +2447,7 @@ void __kmp_join_call(ident_t *loc, int gtid
 #if OMPT_SUPPORT
   void *team_microtask = (void *)team->t.t_pkfn;
   // For GOMP interface with serialized parallel, need the
-  // __kmpc_end_serialized_parallel to call hooks for OMPT end-implicit-task
+  // __kmp_end_serialized_parallel to call hooks for OMPT end-implicit-task
   // and end-parallel events.
   if (ompt_enabled.enabled &&
       !(team->t.t_serialized && fork_context == fork_context_gnu)) {
@@ -2335,11 +2479,12 @@ void __kmp_join_call(ident_t *loc, int gtid
       } else if (level == tlevel + 1) {
         // AC: we are exiting parallel inside teams, need to increment
         // serialization in order to restore it in the next call to
-        // __kmpc_end_serialized_parallel
+        // __kmp_end_serialized_parallel
         team->t.t_serialized++;
       }
     }
-    __kmpc_end_serialized_parallel(loc, gtid);
+    // The parallel region's wrapper function is called from the runtime code.
+    __kmp_end_serialized_parallel(loc, gtid, ompt_parallel_invoker_runtime);
 
 #if OMPT_SUPPORT
     if (ompt_enabled.enabled) {

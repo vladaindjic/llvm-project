@@ -3664,6 +3664,8 @@ extern void __kmp_join_call(ident_t *loc, int gtid
                             int exit_teams = 0);
 
 extern void __kmp_serialized_parallel(ident_t *id, kmp_int32 gtid);
+extern void __kmp_end_serialized_parallel(ident_t *loc, kmp_int32 global_tid,
+                                          int invoker);
 extern void __kmp_internal_fork(ident_t *id, int gtid, kmp_team_t *team);
 extern void __kmp_internal_join(ident_t *id, int gtid, kmp_team_t *team);
 extern int __kmp_invoke_task_func(int gtid);
